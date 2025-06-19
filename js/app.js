@@ -433,14 +433,26 @@ function cargarCotizacion(id) {
     });
 
     // Restaurar cliente seleccionado
+    // Restaurar cliente seleccionado y mostrar el nombre
     if(document.getElementById('clienteSelect')) {
-        // Busca el valor por id si está guardado, si no por nombre
+        let nombreCliente = '';
         if (cot.clienteId) {
             document.getElementById('clienteSelect').value = cot.clienteId;
+            // Buscar cliente por id y actualizar input de nombre
+            if(window.obtenerClientes) {
+                const cliente = window.obtenerClientes().find(c => c.id == cot.clienteId);
+                if (cliente) nombreCliente = cliente.nombre;
+            }
         } else if (cot.cliente && cot.cliente.id) {
             document.getElementById('clienteSelect').value = cot.cliente.id;
+            nombreCliente = cot.cliente.nombre || '';
         } else {
             document.getElementById('clienteSelect').selectedIndex = 0;
+        }
+        // Mostrar nombre aunque no esté en el select
+        if (cot.cliente && cot.cliente.nombre) nombreCliente = cot.cliente.nombre;
+        if (document.getElementById('clienteNombreInput')) {
+            document.getElementById('clienteNombreInput').value = nombreCliente || '';
         }
     }
 
