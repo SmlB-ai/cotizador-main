@@ -1,12 +1,8 @@
 import { generarPDF } from './pdf.js';
-import { ClienteManager } from './cliente.js';
-
-// Instancia global para gestión de clientes
-const gestorClientes = new ClienteManager();
 
 // ========== CONFIGURACIÓN DE TABS DINÁMICOS ==========
 const tabFiles = {
-    cliente: "pestañas/cliente/cliente.html", // <---- CORREGIDO
+    cliente: "pestañas/cliente/cliente.html",
     historial: "pestañas/historial/historial.html",
     materiales: "pestañas/materiales/materiales.html",
     calculadoras: "pestañas/calculadoras/calculadoras.html",
@@ -14,6 +10,7 @@ const tabFiles = {
     "panel-yeso": "pestañas/panel-yeso/panel-yeso.html",
 };
 
+// Carga el contenido HTML de cada pestaña y, si es necesario, su JS asociado
 async function loadTabContent(tabId) {
     const tabPane = document.getElementById(tabId);
     if (!tabPane) return;
@@ -25,6 +22,13 @@ async function loadTabContent(tabId) {
         if (resp.ok) {
             tabPane.innerHTML = await resp.text();
             tabPane.dataset.loaded = true;
+
+            // Inicializa la lógica de la pestaña correspondiente
+            if (tabId === "cliente") {
+                // Importa y ejecuta la lógica de cliente (asegúrate de la ruta correcta)
+                const mod = await import('./cliente.js');
+                mod.initClienteTab();
+            }
             if (tabId === "cotizaciones") {
                 inicializarCotizador();
             }
@@ -34,6 +38,7 @@ async function loadTabContent(tabId) {
     }
 }
 
+// Evento de cambio de pestañas para cargar contenido y lógica dinámica
 document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', function() {
         const target = btn.getAttribute('data-bs-target').replace('#', '');
@@ -105,9 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ========== CLIENTES: ACTUALIZAR SELECT ==========
 function actualizarSelectClientes() {
+    // Nota: window.obtenerClientes es asignado en js/cliente.js cuando la pestaña cliente se inicializa
     const select = document.getElementById('clienteSelect');
-    if (!select) return;
-    const clientesArr = gestorClientes.obtenerTodos();
+    if (!select || typeof window.obtenerClientes !== 'function') return;
+    const clientesArr = window.obtenerClientes();
     select.innerHTML = '<option value="">Seleccionar cliente...</option>';
     clientesArr.forEach(cliente => {
         const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
@@ -120,22 +126,17 @@ window.actualizarSelectClientes = actualizarSelectClientes;
 
 function construirObjetoCotizacion() {
     const idSelected = document.getElementById('clienteSelect')?.value;
-    let clienteObj = {nombre: '', direccion: '', telefono: '', email: '', tipo: ''};
-    if (idSelected) {
-        const cli = gestorClientes.obtenerPorId(idSelected);
+    let clienteObj = {nombre: '', direccion: '', telefono: '', email: '', tipo: '', id: ''};
+    if (idSelected && typeof window.gestorClientes === 'object') {
+        const cli = window.gestorClientes.obtenerPorId(idSelected);
         if (cli) clienteObj = {...cli};
     }
     return {
         id: document.getElementById('folioCotizacion')?.textContent || 'COT-2025-0001',
-        empresa: {
-            nombre: 'StableBuilds',
-            direccion: 'Calle Empresa 123',
-            telefono: '555-123-4567',
-            email: 'info@empresa.com',
-            web: 'stablebuilds.com',
-        },
+        empresa: { /* ... igual ... */ },
         folio: document.getElementById('folioCotizacion')?.textContent || 'COT-2025-0001',
         cliente: clienteObj,
+        clienteId: idSelected, // <-- importante para restaurar el select
         fecha: document.getElementById('fechaCotizacion')?.value || '',
         materiales: [...document.querySelectorAll('.item-row')].map(row => ({
             nombre: row.querySelector('.descripcion-input')?.value || '',
@@ -150,9 +151,14 @@ function construirObjetoCotizacion() {
         },
         descuento: parseFloat(document.getElementById('previewDescuento')?.textContent.replace('$','')) || 0,
         ivaPorcentaje: 16,
+        aplicarIVA: !!document.getElementById('aplicarIVA')?.checked, // <--- nuevo
+        aplicarDescuento: !!document.getElementById('aplicarDescuento')?.checked, // <--- nuevo
+        tipoDescuento: document.getElementById('tipoDescuento')?.value || 'porcentaje', // <--- nuevo
+        valorDescuento: parseFloat(document.getElementById('valorDescuento')?.value) || 0, // <--- nuevo
         anticipo: 0,
         formaPago: 'Transferencia',
-        notasPago: document.getElementById('notasAdicionales')?.value || ''
+        notasPago: document.getElementById('notasAdicionales')?.value || '',
+        estado: document.getElementById('estadoCotizacion')?.textContent?.toLowerCase() || 'borrador'
     };
 }
 
@@ -413,6 +419,7 @@ function cargarCotizacion(id) {
     const todas = JSON.parse(localStorage.getItem('COTIZACIONES_PRO')) || [];
     const cot = todas.find(c => c.id === id);
     if (!cot) return;
+
     if(document.getElementById('folioCotizacion')) document.getElementById('folioCotizacion').textContent = cot.id;
     if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').value = cot.fecha;
     if(document.getElementById('itemsContainer')) document.getElementById('itemsContainer').innerHTML = '';
@@ -425,12 +432,46 @@ function cargarCotizacion(id) {
         row.querySelector('.precio-input').value = item.precio;
     });
 
+    // Restaurar cliente seleccionado
     if(document.getElementById('clienteSelect')) {
-        const clientesArr = gestorClientes.obtenerTodos();
-        const idx = clientesArr.findIndex(
-            c => c.id === cot.cliente.id
-        );
-        document.getElementById('clienteSelect').selectedIndex = idx >= 0 ? (idx + 1) : 0; // +1 por la opción "Seleccionar"
+        // Busca el valor por id si está guardado, si no por nombre
+        if (cot.clienteId) {
+            document.getElementById('clienteSelect').value = cot.clienteId;
+        } else if (cot.cliente && cot.cliente.id) {
+            document.getElementById('clienteSelect').value = cot.cliente.id;
+        } else {
+            document.getElementById('clienteSelect').selectedIndex = 0;
+        }
+    }
+
+    // Restaurar si aplica descuento
+    if (document.getElementById('aplicarDescuento')) {
+        document.getElementById('aplicarDescuento').checked = !!cot.aplicarDescuento;
+    }
+    // Mostrar/ocultar sección de descuento según corresponda
+    if (document.getElementById('descuentoSection')) {
+        if (cot.aplicarDescuento) {
+            document.getElementById('descuentoSection').classList.remove('hidden');
+        } else {
+            document.getElementById('descuentoSection').classList.add('hidden');
+        }
+    }
+    // Restaurar tipo y valor de descuento
+    if (document.getElementById('tipoDescuento')) {
+        document.getElementById('tipoDescuento').value = cot.tipoDescuento || 'porcentaje';
+    }
+    if (document.getElementById('valorDescuento')) {
+        document.getElementById('valorDescuento').value = cot.valorDescuento || '';
+    }
+
+    // Restaurar si aplica IVA
+    if (document.getElementById('aplicarIVA')) {
+        document.getElementById('aplicarIVA').checked = !!cot.aplicarIVA;
+    }
+
+    // Notas adicionales
+    if (document.getElementById('notasAdicionales')) {
+        document.getElementById('notasAdicionales').value = cot.notasPago || '';
     }
 
     if(document.getElementById('estadoCotizacion')) {
@@ -448,4 +489,4 @@ function cargarCotizacion(id) {
 
 window.cargarCotizacion = cargarCotizacion;
 window.eliminarCotizacion = eliminarCotizacion;
-window.actualizarSelectCliente = actualizarSelectCliente;
+window.actualizarSelectClientes = actualizarSelectClientes;

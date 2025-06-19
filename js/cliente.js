@@ -177,10 +177,10 @@ export class ClienteManager {
     }
 }
 
-// --- Código de UI y formulario, listo para importar desde cliente.html ---
+// --- Lógica de UI y eventos de la pestaña Cliente ---
+export function initClienteTab() {
+    if (!document.getElementById('formNuevoCliente')) return;
 
-// Solo ejecutar si estamos en una página que tiene el formulario de clientes
-if (document.getElementById('formNuevoCliente')) {
     const gestorClientes = new ClienteManager();
 
     function renderizarListaClientes() {
@@ -277,7 +277,7 @@ if (document.getElementById('formNuevoCliente')) {
     // Inicializar lista al cargar
     renderizarListaClientes();
 
-    // Permitir acceso global para cotizador
+    // Permitir acceso global (para el select de cotizaciones)
     window.obtenerClientes = () => gestorClientes.obtenerTodos();
     window.gestorClientes = gestorClientes;
 }
