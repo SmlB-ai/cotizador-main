@@ -1,4 +1,4 @@
-import { generarPDF } from './pdf.js';
+import { generarPDF, armarDatosEmpresaParaPDF } from './pdf.js';
 
 // ========== CONFIGURACIÓN DE TABS DINÁMICOS ==========
 const tabFiles = {
@@ -10,7 +10,6 @@ const tabFiles = {
     "panel-yeso": "pestañas/panel-yeso/panel-yeso.html",
 };
 
-// Carga el contenido HTML de cada pestaña y, si es necesario, su JS asociado
 async function loadTabContent(tabId) {
     const tabPane = document.getElementById(tabId);
     if (!tabPane) return;
@@ -23,7 +22,6 @@ async function loadTabContent(tabId) {
             tabPane.innerHTML = await resp.text();
             tabPane.dataset.loaded = true;
 
-            // Inicializa la lógica de la pestaña correspondiente
             if (tabId === "cliente") {
                 const mod = await import('./cliente.js');
                 mod.initClienteTab();
@@ -41,7 +39,6 @@ async function loadTabContent(tabId) {
     }
 }
 
-// Evento de cambio de pestañas para cargar contenido y lógica dinámica
 document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', function() {
         const target = btn.getAttribute('data-bs-target').replace('#', '');
@@ -51,7 +48,7 @@ document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
         loadTabContent(target);
     });
 });
-document.querySelector('button[data-bs-target="#historial"]').addEventListener('shown.bs.tab', mostrarHistorial);
+document.querySelector('button[data-bs-target="#historial"]')?.addEventListener('shown.bs.tab', mostrarHistorial);
 
 document.addEventListener('DOMContentLoaded', () => {
     const activeTab = document.querySelector('.tab-pane.show.active');
@@ -61,8 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========== FUNCIONALIDAD DEL COTIZADOR PRINCIPAL (COTIZACIONES) ==========
-
-let estadoCotizacion = 'borrador';
 
 function inicializarCotizador() {
     if(document.getElementById('fechaCotizacion')) {
@@ -92,7 +87,12 @@ function inicializarCotizador() {
     if(document.getElementById('btnGenerarPDF')) {
         document.getElementById('btnGenerarPDF').onclick = async function() {
             const cotizacion = construirObjetoCotizacion();
-            await generarPDF(cotizacion);
+            const empresa = await armarDatosEmpresaParaPDF();
+            const datosPDF = {
+                ...cotizacion,
+                empresa
+            };
+            await generarPDF(datosPDF);
         };
     }
 
@@ -113,7 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ========== CLIENTES: ACTUALIZAR SELECT ==========
 function actualizarSelectClientes() {
-    // Nota: window.obtenerClientes es asignado en js/cliente.js cuando la pestaña cliente se inicializa
     const select = document.getElementById('clienteSelect');
     if (!select || typeof window.obtenerClientes !== 'function') return;
     const clientesArr = window.obtenerClientes();
@@ -136,10 +135,9 @@ function construirObjetoCotizacion() {
     }
     return {
         id: document.getElementById('folioCotizacion')?.textContent || 'COT-2025-0001',
-        empresa: { /* ... igual ... */ },
         folio: document.getElementById('folioCotizacion')?.textContent || 'COT-2025-0001',
         cliente: clienteObj,
-        clienteId: idSelected, // <-- importante para restaurar el select
+        clienteId: idSelected,
         fecha: document.getElementById('fechaCotizacion')?.value || '',
         materiales: [...document.querySelectorAll('.item-row')].map(row => ({
             nombre: row.querySelector('.descripcion-input')?.value || '',
@@ -154,10 +152,10 @@ function construirObjetoCotizacion() {
         },
         descuento: parseFloat(document.getElementById('previewDescuento')?.textContent.replace('$','')) || 0,
         ivaPorcentaje: 16,
-        aplicarIVA: !!document.getElementById('aplicarIVA')?.checked, // <--- nuevo
-        aplicarDescuento: !!document.getElementById('aplicarDescuento')?.checked, // <--- nuevo
-        tipoDescuento: document.getElementById('tipoDescuento')?.value || 'porcentaje', // <--- nuevo
-        valorDescuento: parseFloat(document.getElementById('valorDescuento')?.value) || 0, // <--- nuevo
+        aplicarIVA: !!document.getElementById('aplicarIVA')?.checked,
+        aplicarDescuento: !!document.getElementById('aplicarDescuento')?.checked,
+        tipoDescuento: document.getElementById('tipoDescuento')?.value || 'porcentaje',
+        valorDescuento: parseFloat(document.getElementById('valorDescuento')?.value) || 0,
         anticipo: 0,
         formaPago: 'Transferencia',
         notasPago: document.getElementById('notasAdicionales')?.value || '',
@@ -435,13 +433,10 @@ function cargarCotizacion(id) {
         row.querySelector('.precio-input').value = item.precio;
     });
 
-    // Restaurar cliente seleccionado
-    // Restaurar cliente seleccionado y mostrar el nombre
     if(document.getElementById('clienteSelect')) {
         let nombreCliente = '';
         if (cot.clienteId) {
             document.getElementById('clienteSelect').value = cot.clienteId;
-            // Buscar cliente por id y actualizar input de nombre
             if(window.obtenerClientes) {
                 const cliente = window.obtenerClientes().find(c => c.id == cot.clienteId);
                 if (cliente) nombreCliente = cliente.nombre;
@@ -452,18 +447,15 @@ function cargarCotizacion(id) {
         } else {
             document.getElementById('clienteSelect').selectedIndex = 0;
         }
-        // Mostrar nombre aunque no esté en el select
         if (cot.cliente && cot.cliente.nombre) nombreCliente = cot.cliente.nombre;
         if (document.getElementById('clienteNombreInput')) {
             document.getElementById('clienteNombreInput').value = nombreCliente || '';
         }
     }
 
-    // Restaurar si aplica descuento
     if (document.getElementById('aplicarDescuento')) {
         document.getElementById('aplicarDescuento').checked = !!cot.aplicarDescuento;
     }
-    // Mostrar/ocultar sección de descuento según corresponda
     if (document.getElementById('descuentoSection')) {
         if (cot.aplicarDescuento) {
             document.getElementById('descuentoSection').classList.remove('hidden');
@@ -471,7 +463,6 @@ function cargarCotizacion(id) {
             document.getElementById('descuentoSection').classList.add('hidden');
         }
     }
-    // Restaurar tipo y valor de descuento
     if (document.getElementById('tipoDescuento')) {
         document.getElementById('tipoDescuento').value = cot.tipoDescuento || 'porcentaje';
     }
@@ -479,12 +470,10 @@ function cargarCotizacion(id) {
         document.getElementById('valorDescuento').value = cot.valorDescuento || '';
     }
 
-    // Restaurar si aplica IVA
     if (document.getElementById('aplicarIVA')) {
         document.getElementById('aplicarIVA').checked = !!cot.aplicarIVA;
     }
 
-    // Notas adicionales
     if (document.getElementById('notasAdicionales')) {
         document.getElementById('notasAdicionales').value = cot.notasPago || '';
     }
