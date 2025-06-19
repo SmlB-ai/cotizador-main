@@ -1,0 +1,51 @@
+/* Tema específico para construcción */
+.brand-bg {
+    background-color: #F5F5F5;
+}
+
+.brand-primary-bg {
+    background-color: #FF6F00;
+}
+
+.brand-secondary-bg {
+    background-color: #FFB300;
+}
+
+.brand-text {
+    color: #FF6F00;
+}
+
+.brand-secondary-text {
+    color: #FFB300;
+}
+
+.brand-border {
+    border: 2px solid #FF6F00;
+}
+
+/* Personalización de elementos para construcción */
+.material-item {
+    border-left: 4px solid #FF6F00;
+}
+
+.btn-primary {
+    background-color: #FF6F00;
+}
+
+.btn-primary:hover {
+    background-color: #F57C00;
+}
+
+.btn-secondary {
+    background-color: #FFB300;
+}
+
+.btn-secondary:hover {
+    background-color: #FFA000;
+}
+
+/* Iconos personalizados para construcción */
+.icon-construccion {
+    font-family: 'Material Icons';
+    color: #FF6F00;
+}

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizaciones Pro - Constructor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/brands/style.css">
+    <style>
+        .hidden { display: none; }
+        .cotizacion-preview { border: 1px solid #ddd; padding: 15px; border-radius: 5px; background-color: #f9f9f9; }
+        .total-section { margin-top: 20px; }
+        .status-badge { font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-hammer"></i> Cotizaciones Pro
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-user"></i> Constructor
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="cotizaciones-tab" data-bs-toggle="tab" data-bs-target="#cotizaciones" type="button" role="tab">
+                    <i class="fas fa-file-invoice"></i> Cotizaciones
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
+                    <i class="fas fa-users"></i> Clientes
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="materiales-tab" data-bs-toggle="tab" data-bs-target="#materiales" type="button" role="tab">
+                    <i class="fas fa-boxes"></i> Materiales
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="calculadoras-tab" data-bs-toggle="tab" data-bs-target="#calculadoras" type="button" role="tab">
+                    <i class="fas fa-calculator"></i> Calculadoras
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="historial-tab" data-bs-toggle="tab" data-bs-target="#historial" type="button" role="tab">
+                    <i class="fas fa-history"></i> Historial
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" data-bs-target="#configuracion" type="button" role="tab">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="panel-yeso-tab" data-bs-toggle="tab" data-bs-target="#panel-yeso" type="button" role="tab">
+                    <i class="fas fa-border-all"></i> Panel Yeso
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- Cotizaciones -->
+            <div class="tab-pane fade show active" id="cotizaciones" role="tabpanel">
+                <div class="row mt-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Nueva Cotización</h5>
+                                <div>
+                                    <span id="estadoCotizacion" class="badge bg-warning status-badge">Borrador</span>
+                                    <span id="folioCotizacion" class="badge bg-secondary ms-2">COT-2025-0001</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Cliente Section -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cliente</label>
+                                        <select class="form-select" id="clienteSelect">
+                                        <option value="">Seleccionar cliente...</option>
+                                    </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Fecha</label>
+                                        <input type="date" class="form-control" id="fechaCotizacion" value="">
+                                    </div>
+                                </div>
+                                <!-- Items Section -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6>Conceptos</h6>
+                                        <button class="btn btn-sm btn-primary" id="btnAgregarItem" type="button">
+                                            <i class="fas fa-plus"></i> Agregar Item
+                                        </button>
+                                    </div>
+                                    <div id="itemsContainer"></div>
+                                </div>
+                                <!-- Options Section -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="aplicarIVA" checked>
+                                            <label class="form-check-label" for="aplicarIVA">
+                                                Aplicar IVA (16%)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="aplicarDescuento">
+                                            <label class="form-check-label" for="aplicarDescuento">
+                                                Aplicar Descuento
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Descuento Section -->
+                                <div class="row mb-3 hidden" id="descuentoSection">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tipo de Descuento</label>
+                                        <select class="form-select" id="tipoDescuento">
+                                            <option value="porcentaje">Porcentaje (%)</option>
+                                            <option value="monto">Monto Fijo ($)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Valor del Descuento</label>
+                                        <input type="number" class="form-control" id="valorDescuento" placeholder="0">
+                                    </div>
+                                </div>
+                                <!-- Notas Section -->
+                                <div class="mb-3">
+                                    <label class="form-label">Notas Adicionales</label>
+                                    <textarea class="form-control" id="notasAdicionales" rows="3" placeholder="Vigencia, condiciones especiales, etc."></textarea>
+                                </div>
+                                <!-- Actions -->
+                                <div class="d-flex justify-content-between">
+                                    <button class="btn btn-secondary" id="btnGuardarBorrador" type="button">
+                                        <i class="fas fa-save"></i> Guardar Borrador
+                                    </button>
+                                    <div>
+                                        <button class="btn btn-success me-2" id="btnAprobar" type="button">
+                                            <i class="fas fa-check"></i> Aprobar
+                                        </button>
+                                        <button class="btn btn-primary" id="btnGenerarPDF" type="button">
+                                            <i class="fas fa-file-pdf"></i> Generar PDF
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Preview Section -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Vista Previa</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="cotizacionPreview" class="cotizacion-preview">
+                                    <div class="text-center mb-3">
+                                        <h5>Tu Empresa</h5>
+                                        <small class="text-muted" id="previewFolio">Cotización COT-2025-0001</small>
+                                    </div>
+                                    <div id="previewItems">
+                                        <p class="text-muted text-center">Agrega items para ver la vista previa</p>
+                                    </div>
+                                    <div class="total-section">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Subtotal:</span>
+                                            <span id="previewSubtotal">$0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between" id="previewDescuentoRow" style="display: none;">
+                                            <span>Descuento:</span>
+                                            <span id="previewDescuento">$0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between" id="previewIVARow">
+                                            <span>IVA (16%):</span>
+                                            <span id="previewIVA">$0.00</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>Total:</span>
+                                            <span id="previewTotal">$0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--pestañas vacías, el JS cargará el contenido -->
+            <div class="tab-pane fade" id="clientes" role="tabpanel"></div>
+            <div class="tab-pane fade" id="historial" role="tabpanel"></div>
+            <div class="tab-pane fade" id="materiales" role="tabpanel"></div>
+            <div class="tab-pane fade" id="calculadoras" role="tabpanel"></div>
+            <div class="tab-pane fade" id="configuracion" role="tabpanel"></div>
+            <div class="tab-pane fade" id="panel-yeso" role="tabpanel"></div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS solo aquí -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/pdf.js" type="module"></script>
+    <script src="js/app.js" type="module"></script>
+</body>
+</html>
