@@ -40,7 +40,6 @@ document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
         loadTabContent(target);
     });
 });
-// Mostrar historial cuando se abre la pestaña historial
 document.querySelector('button[data-bs-target="#historial"]').addEventListener('shown.bs.tab', mostrarHistorial);
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -108,15 +107,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Función para actualizar el select de clientes
+// Función para actualizar el select de clientes (usa id como value)
 function actualizarSelectClientes() {
+    if (!document.getElementById('clienteSelect')) return;
     const select = document.getElementById('clienteSelect');
-    if (!select) return;
-    const clientes = JSON.parse(localStorage.getItem('CLIENTES_PRO')) || [];
+    let clientes = [];
+    // Si tienes la clase Clientes como global, úsala, si no, usa localStorage:
+    if (window.obtenerClientes) {
+        clientes = window.obtenerClientes();
+    } else {
+        clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
+    }
     select.innerHTML = '<option value="">Seleccionar cliente...</option>';
-    clientes.forEach((cliente, idx) => {
-        const texto = `${cliente.nombre} - ${cliente.tipo}`;
-        select.innerHTML += `<option value="${idx}">${texto}</option>`;
+    clientes.forEach((cliente) => {
+        const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
+        select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
     });
 }
 
@@ -124,11 +129,17 @@ function actualizarSelectClientes() {
 
 function construirObjetoCotizacion() {
     // Extrae datos reales del cliente seleccionado
-    const clientes = JSON.parse(localStorage.getItem('CLIENTES_PRO')) || [];
-    const idxSelected = document.getElementById('clienteSelect')?.value;
+    let clientes = [];
+    if (window.obtenerClientes) {
+        clientes = window.obtenerClientes();
+    } else {
+        clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
+    }
+    const idSelected = document.getElementById('clienteSelect')?.value;
     let clienteObj = {nombre: '', direccion: '', telefono: '', email: '', tipo: ''};
-    if (idxSelected && clientes[idxSelected]) {
-        clienteObj = {...clientes[idxSelected]};
+    if (idSelected) {
+        const cli = clientes.find(c => c.id === idSelected);
+        if (cli) clienteObj = {...cli};
     }
     return {
         id: document.getElementById('folioCotizacion')?.textContent || 'COT-2025-0001',
@@ -444,10 +455,15 @@ function cargarCotizacion(id) {
 
     // Seleccionar cliente si existe
     if(document.getElementById('clienteSelect')) {
-        // Buscar el índice del cliente por nombre y tipo
-        const clientes = JSON.parse(localStorage.getItem('CLIENTES_PRO')) || [];
+        // Buscar el cliente por ID (ahora el value es el id)
+        let clientes = [];
+        if (window.obtenerClientes) {
+            clientes = window.obtenerClientes();
+        } else {
+            clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
+        }
         const idx = clientes.findIndex(
-            c => c.nombre === cot.cliente.nombre && c.tipo === cot.cliente.tipo
+            c => c.id === cot.cliente.id
         );
         document.getElementById('clienteSelect').selectedIndex = idx >= 0 ? (idx + 1) : 0; // +1 por la opción "Seleccionar"
     }

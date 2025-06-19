@@ -1,3 +1,4 @@
+<!-- clientes.html optimizado, usando la clase Clientes y la clave correcta -->
 <div class="container mt-3">
     <div class="card mb-4">
         <div class="card-header">
@@ -50,83 +51,75 @@
         </div>
     </div>
 </div>
-<script>
-    // 1. Leer clientes desde localStorage
-    function obtenerClientes() {
-        return JSON.parse(localStorage.getItem('CLIENTES_PRO')) || [];
-    }
-    // 2. Guardar clientes en localStorage
-    function guardarClientes(clientes) {
-        localStorage.setItem('CLIENTES_PRO', JSON.stringify(clientes));
-    }
-    // 3. Mostrar la lista de clientes en pantalla
-    function renderizarListaClientes() {
-        const lista = document.getElementById('listaClientes');
-        const clientes = obtenerClientes();
-        if (clientes.length === 0) {
-            lista.innerHTML = '<p class="text-muted">No hay clientes guardados.</p>';
-            return;
-        }
-        lista.innerHTML = '<ul class="list-group mb-2">' +
-            clientes.map((c, idx) => `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${c.nombre}</strong> (${c.tipo})<br>
-                        <small>Tel: ${c.telefono || '-'} | Email: ${c.email || '-'} | Dir: ${c.direccion || '-'}</small>
-                    </div>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarCliente(${idx})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </li>
-            `).join('') +
-            '</ul>';
-    }
+<script type="module">
+import { Clientes } from './js/clientes.js';
+const clientes = new Clientes();
 
-    // 4. Evento al guardar nuevo cliente
-    document.getElementById('formNuevoCliente').addEventListener('submit', function(e) {
-        e.preventDefault(); // ¡Evita recargar o cambiar de tab!
-        const nombre = document.getElementById('clienteNombre').value.trim();
-        const tipo = document.getElementById('clienteTipo').value;
-        const telefono = document.getElementById('clienteTelefono').value.trim();
-        const email = document.getElementById('clienteEmail').value.trim();
-        const direccion = document.getElementById('clienteDireccion').value.trim();
-        if (!nombre) {
-            alert("El nombre es obligatorio.");
-            return;
-        }
-        const clientes = obtenerClientes();
-        clientes.push({ nombre, tipo, telefono, email, direccion });
-        guardarClientes(clientes);
+// 1. Mostrar la lista de clientes en pantalla
+function renderizarListaClientes() {
+    const lista = document.getElementById('listaClientes');
+    const clientesArr = clientes.obtenerTodos();
+    if (clientesArr.length === 0) {
+        lista.innerHTML = '<p class="text-muted">No hay clientes guardados.</p>';
+        return;
+    }
+    lista.innerHTML = '<ul class="list-group mb-2">' +
+        clientesArr.map((c, idx) => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${c.nombre}</strong> (${c.tipo || '-'})<br>
+                    <small>Tel: ${c.telefono || '-'} | Email: ${c.email || '-'} | Dir: ${c.direccion || '-'}</small>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </li>
+        `).join('') +
+        '</ul>';
+}
+
+// 2. Evento al guardar nuevo cliente
+document.getElementById('formNuevoCliente').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('clienteNombre').value.trim();
+    const tipo = document.getElementById('clienteTipo').value;
+    const telefono = document.getElementById('clienteTelefono').value.trim();
+    const email = document.getElementById('clienteEmail').value.trim();
+    const direccion = document.getElementById('clienteDireccion').value.trim();
+
+    try {
+        clientes.guardar({ nombre, tipo, telefono, email, direccion });
         renderizarListaClientes();
         this.reset();
         // Notifica al cotizador: actualiza el select si existe
         if (window.actualizarSelectClientes) window.actualizarSelectClientes();
-    });
-
-    // 5. Eliminar cliente
-    window.eliminarCliente = function(idx) {
-        if (!confirm("¿Eliminar este cliente?")) return;
-        const clientes = obtenerClientes();
-        clientes.splice(idx, 1);
-        guardarClientes(clientes);
-        renderizarListaClientes();
-        if (window.actualizarSelectClientes) window.actualizarSelectClientes();
+    } catch (e) {
+        alert('Error: ' + e.message);
     }
+});
 
-    // 6. Permitir acceso global para otras pestañas
-    window.obtenerClientes = obtenerClientes;
-    window.actualizarSelectClientes = function() {
-        // Si existe el select en cotizaciones, lo llenamos con los clientes
-        if (!document.getElementById('clienteSelect')) return;
-        const select = document.getElementById('clienteSelect');
-        const clientes = obtenerClientes();
-        select.innerHTML = '<option value="">Seleccionar cliente...</option>';
-        clientes.forEach((cliente, idx) => {
-            const texto = `${cliente.nombre} - ${cliente.tipo}`;
-            select.innerHTML += `<option value="${idx}">${texto}</option>`;
-        });
-    }
-
-    // 7. Mostrar lista al cargar
+// 3. Eliminar cliente
+window.eliminarCliente = function(id) {
+    if (!confirm("¿Eliminar este cliente?")) return;
+    clientes.eliminar(id);
     renderizarListaClientes();
+    if (window.actualizarSelectClientes) window.actualizarSelectClientes();
+}
+
+// 4. Permitir acceso global para otras pestañas
+window.obtenerClientes = () => clientes.obtenerTodos();
+window.actualizarSelectClientes = function() {
+    // Si existe el select en cotizaciones, lo llenamos con los clientes
+    if (!document.getElementById('clienteSelect')) return;
+    const select = document.getElementById('clienteSelect');
+    const clientesArr = clientes.obtenerTodos();
+    select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+    clientesArr.forEach((cliente) => {
+        const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
+        select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
+    });
+}
+
+// 5. Mostrar lista al cargar
+renderizarListaClientes();
 </script>
