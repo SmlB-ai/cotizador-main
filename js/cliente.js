@@ -1,35 +1,23 @@
-/**
- * Clase para la gestión de clientes
- * Maneja el almacenamiento local y la validación de datos
- */
-export class Clientes {
+// cliente.js: Clase ClienteManager para gestión de clientes con localStorage
+
+export class ClienteManager {
     constructor() {
         this.storageKey = 'cotizador_clientes';
         this.clientesCache = null;
         this.inicializarDB();
     }
 
-    /**
-     * Inicializa la base de datos local si aún no existe.
-     */
     inicializarDB() {
         if (!localStorage.getItem(this.storageKey)) {
             localStorage.setItem(this.storageKey, JSON.stringify([]));
         }
     }
 
-    /**
-     * Fuerza recarga de la caché de clientes.
-     */
     refrescarCache() {
         this.clientesCache = null;
         return this.obtenerTodos();
     }
 
-    /**
-     * Obtiene todos los clientes ordenados por nombre.
-     * @returns {Array} Lista de clientes
-     */
     obtenerTodos() {
         if (!this.clientesCache) {
             const clientes = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
@@ -39,11 +27,6 @@ export class Clientes {
         return this.clientesCache;
     }
 
-    /**
-     * Busca clientes por nombre o correo
-     * @param {string} termino - Término de búsqueda
-     * @returns {Array} Clientes que coinciden con la búsqueda
-     */
     buscar(termino) {
         const terminoLower = (termino || '').toLowerCase();
         return this.obtenerTodos().filter(cliente =>
@@ -52,26 +35,20 @@ export class Clientes {
         );
     }
 
-    /**
-     * Guarda un nuevo cliente o actualiza uno existente por ID, email o combinación nombre+teléfono.
-     * @param {Object} cliente - Datos del cliente
-     * @returns {Object} Cliente guardado con ID
-     */
     guardar(cliente) {
         const validacion = this.validarCliente(cliente);
         if (!validacion.esValido) {
             throw new Error(validacion.errores.join('\n'));
         }
 
-        // Normalizar campos
         cliente.nombre = cliente.nombre?.trim();
         cliente.email = cliente.email?.trim() || '';
         cliente.telefono = cliente.telefono?.trim() || '';
         cliente.direccion = cliente.direccion?.trim() || '';
+        cliente.tipo = cliente.tipo?.trim() || '';
 
         let clientes = this.obtenerTodos();
 
-        // Buscar por id, email o combinación nombre+teléfono
         const indiceExistente = clientes.findIndex(c =>
             (cliente.id && c.id === cliente.id) ||
             (cliente.email && c.email === cliente.email) ||
@@ -81,14 +58,12 @@ export class Clientes {
         const ahora = new Date().toISOString();
 
         if (indiceExistente >= 0) {
-            // Actualizar cliente existente
             clientes[indiceExistente] = {
                 ...clientes[indiceExistente],
                 ...cliente,
                 actualizado: ahora
             };
         } else {
-            // Agregar nuevo cliente
             clientes.push({
                 id: this.generarId(),
                 ...cliente,
@@ -102,11 +77,6 @@ export class Clientes {
         return cliente;
     }
 
-    /**
-     * Elimina un cliente por ID
-     * @param {string} id - ID del cliente
-     * @returns {boolean} true si se eliminó correctamente
-     */
     eliminar(id) {
         let clientes = this.obtenerTodos();
         const indice = clientes.findIndex(c => c.id === id);
@@ -120,22 +90,13 @@ export class Clientes {
         return false;
     }
 
-    /**
-     * Busca un cliente por su ID
-     * @param {string} id - ID del cliente
-     * @returns {Object|null} Cliente encontrado o null
-     */
     obtenerPorId(id) {
         return this.obtenerTodos().find(c => c.id === id) || null;
     }
 
-    /**
-     * Exporta todos los clientes a CSV
-     * @returns {string} Contenido CSV
-     */
     exportarCSV() {
         const clientes = this.obtenerTodos();
-        const campos = ['nombre', 'direccion', 'telefono', 'email', 'creado', 'actualizado'];
+        const campos = ['nombre', 'tipo', 'direccion', 'telefono', 'email', 'creado', 'actualizado'];
         const csvContent = [
             campos.join(','), // Encabezados
             ...clientes.map(cliente =>
@@ -147,13 +108,7 @@ export class Clientes {
         return csvContent;
     }
 
-    /**
-     * Importa clientes desde CSV
-     * @param {string} csvContent - Contenido CSV
-     * @returns {Object} Resultado de la importación
-     */
     importarCSV(csvContent) {
-        // Normalizar saltos de línea
         const contenidoNormalizado = csvContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         const lineas = contenidoNormalizado.split('\n').filter(linea => linea.trim() !== '');
 
@@ -190,22 +145,14 @@ export class Clientes {
         return resultado;
     }
 
-    /**
-     * Valida los datos de un cliente
-     * @param {Object} cliente - Cliente a validar
-     * @returns {Object} Resultado de la validación
-     */
     validarCliente(cliente) {
         const errores = [];
-        // Validar nombre
         if (!cliente.nombre || cliente.nombre.trim().length < 2) {
             errores.push('El nombre debe tener al menos 2 caracteres');
         }
-        // Validar email si existe
         if (cliente.email && !this.validarEmail(cliente.email)) {
             errores.push('El email no es válido');
         }
-        // Validar teléfono si existe
         if (cliente.telefono && !this.validarTelefono(cliente.telefono)) {
             errores.push('El teléfono no es válido');
         }
@@ -215,48 +162,25 @@ export class Clientes {
         };
     }
 
-    /**
-     * Guarda los clientes en el almacenamiento local
-     * @param {Array} clientes - Lista de clientes
-     */
     guardarEnStorage(clientes) {
         localStorage.setItem(this.storageKey, JSON.stringify(clientes));
         this.clientesCache = clientes;
     }
 
-    /**
-     * Genera un ID único para un cliente
-     * @returns {string} ID generado
-     */
     generarId() {
         return 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    /**
-     * Valida un email
-     * @param {string} email - Email a validar
-     * @returns {boolean} true si el email es válido
-     */
     validarEmail(email) {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return re.test(email);
     }
 
-    /**
-     * Valida un número de teléfono
-     * @param {string} telefono - Teléfono a validar
-     * @returns {boolean} true si el teléfono es válido
-     */
     validarTelefono(telefono) {
         const re = /^[\d\s\-()]+$/;
         return re.test(telefono) && telefono.replace(/[^\d]/g, '').length >= 8;
     }
 
-    /**
-     * Parsea una línea de CSV de forma robusta
-     * @param {string} linea - Línea a parsear
-     * @returns {Array} Valores de la línea
-     */
     parsearCSVLinea(linea) {
         const valores = [];
         let valor = '';

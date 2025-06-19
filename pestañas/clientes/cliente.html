@@ -1,5 +1,5 @@
-<!-- clientes.html optimizado, usando la clase Clientes y la clave correcta -->
-<div class="container mt-3">
+<!-- cliente.html mejorado y moderno, usando módulos ES, Bootstrap y la clase Cliente desde cliente.js -->
+<div class="container mt-4">
     <div class="card mb-4">
         <div class="card-header">
             <strong>Agregar Nuevo Cliente</strong>
@@ -40,9 +40,15 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card mb-4">
         <div class="card-header">
             <strong>Lista de Clientes</strong>
+            <button class="btn btn-sm btn-outline-primary float-end ms-2" id="btnExportarClientes">
+                <i class="fas fa-file-export"></i> Exportar CSV
+            </button>
+            <button class="btn btn-sm btn-outline-secondary float-end" id="btnImportarClientes">
+                <i class="fas fa-file-import"></i> Importar CSV
+            </button>
         </div>
         <div class="card-body">
             <div id="listaClientes">
@@ -52,25 +58,26 @@
     </div>
 </div>
 <script type="module">
-import { Clientes } from './js/clientes.js';
-const clientes = new Clientes();
+import { ClienteManager } from './cliente.js';
 
-// 1. Mostrar la lista de clientes en pantalla
+// Instancia única para toda la app
+const gestorClientes = new ClienteManager();
+
 function renderizarListaClientes() {
     const lista = document.getElementById('listaClientes');
-    const clientesArr = clientes.obtenerTodos();
+    const clientesArr = gestorClientes.obtenerTodos();
     if (clientesArr.length === 0) {
         lista.innerHTML = '<p class="text-muted">No hay clientes guardados.</p>';
         return;
     }
     lista.innerHTML = '<ul class="list-group mb-2">' +
-        clientesArr.map((c, idx) => `
+        clientesArr.map((c) => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                     <strong>${c.nombre}</strong> (${c.tipo || '-'})<br>
                     <small>Tel: ${c.telefono || '-'} | Email: ${c.email || '-'} | Dir: ${c.direccion || '-'}</small>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c.id}')">
+                <button class="btn btn-danger btn-sm" onclick="window.eliminarCliente('${c.id}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </li>
@@ -78,7 +85,15 @@ function renderizarListaClientes() {
         '</ul>';
 }
 
-// 2. Evento al guardar nuevo cliente
+window.eliminarCliente = function(id) {
+    if (confirm("¿Eliminar este cliente?")) {
+        gestorClientes.eliminar(id);
+        renderizarListaClientes();
+        if (window.actualizarSelectClientes) window.actualizarSelectClientes();
+    }
+};
+
+// Formulario alta de cliente
 document.getElementById('formNuevoCliente').addEventListener('submit', function(e) {
     e.preventDefault();
     const nombre = document.getElementById('clienteNombre').value.trim();
@@ -86,40 +101,61 @@ document.getElementById('formNuevoCliente').addEventListener('submit', function(
     const telefono = document.getElementById('clienteTelefono').value.trim();
     const email = document.getElementById('clienteEmail').value.trim();
     const direccion = document.getElementById('clienteDireccion').value.trim();
-
     try {
-        clientes.guardar({ nombre, tipo, telefono, email, direccion });
-        renderizarListaClientes();
+        gestorClientes.guardar({ nombre, tipo, telefono, email, direccion });
         this.reset();
-        // Notifica al cotizador: actualiza el select si existe
+        renderizarListaClientes();
         if (window.actualizarSelectClientes) window.actualizarSelectClientes();
     } catch (e) {
         alert('Error: ' + e.message);
     }
 });
 
-// 3. Eliminar cliente
-window.eliminarCliente = function(id) {
-    if (!confirm("¿Eliminar este cliente?")) return;
-    clientes.eliminar(id);
-    renderizarListaClientes();
-    if (window.actualizarSelectClientes) window.actualizarSelectClientes();
-}
+// Exportar e importar CSV
+document.getElementById('btnExportarClientes').onclick = () => {
+    try {
+        const csvContent = gestorClientes.exportarCSV();
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `clientes_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        alert('Error al exportar: ' + error.message);
+    }
+};
 
-// 4. Permitir acceso global para otras pestañas
-window.obtenerClientes = () => clientes.obtenerTodos();
-window.actualizarSelectClientes = function() {
-    // Si existe el select en cotizaciones, lo llenamos con los clientes
-    if (!document.getElementById('clienteSelect')) return;
-    const select = document.getElementById('clienteSelect');
-    const clientesArr = clientes.obtenerTodos();
-    select.innerHTML = '<option value="">Seleccionar cliente...</option>';
-    clientesArr.forEach((cliente) => {
-        const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
-        select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
-    });
-}
+document.getElementById('btnImportarClientes').onclick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const archivo = e.target.files[0];
+        if (!archivo) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const resultado = gestorClientes.importarCSV(evt.target.result);
+                alert(`Importación completada:\n- Exitosos: ${resultado.exitosos}\n- Con errores: ${resultado.fallidos}`);
+                renderizarListaClientes();
+                if (window.actualizarSelectClientes) window.actualizarSelectClientes();
+            } catch (err) {
+                alert('Error al importar: ' + err.message);
+            }
+        };
+        reader.readAsText(archivo);
+    };
+    input.click();
+};
 
-// 5. Mostrar lista al cargar
+// Inicializar lista al cargar
 renderizarListaClientes();
+
+// Permitir acceso global para cotizador
+window.obtenerClientes = () => gestorClientes.obtenerTodos();
+window.gestorClientes = gestorClientes;
 </script>

@@ -1,4 +1,8 @@
 import { generarPDF } from './pdf.js';
+import { ClienteManager } from './cliente.js';
+
+// Instancia global para gestión de clientes
+const gestorClientes = new ClienteManager();
 
 // ========== CONFIGURACIÓN DE TABS DINÁMICOS ==========
 const tabFiles = {
@@ -21,7 +25,6 @@ async function loadTabContent(tabId) {
         if (resp.ok) {
             tabPane.innerHTML = await resp.text();
             tabPane.dataset.loaded = true;
-            // Si se carga la pestaña de cotizaciones, inicializa cotización
             if (tabId === "cotizaciones") {
                 inicializarCotizador();
             }
@@ -35,7 +38,7 @@ document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', function() {
         const target = btn.getAttribute('data-bs-target').replace('#', '');
         if (target === "cotizaciones") {
-            if(window.actualizarSelectClientes) window.actualizarSelectClientes();
+            actualizarSelectClientes();
         }
         loadTabContent(target);
     });
@@ -53,13 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let estadoCotizacion = 'borrador';
 
-// Inicializador de la pestaña cotizaciones
 function inicializarCotizador() {
-    // Inicializa fecha
     if(document.getElementById('fechaCotizacion')) {
         document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
     }
-    // Inicializa folio
     if(document.getElementById('folioCotizacion')) {
         document.getElementById('folioCotizacion').textContent = generarFolioAutomatico();
     }
@@ -67,10 +67,8 @@ function inicializarCotizador() {
         document.getElementById('previewFolio').textContent = 'Cotización ' + document.getElementById('folioCotizacion').textContent;
     }
 
-    // Cargar lista de clientes en el select al inicio
     actualizarSelectClientes();
 
-    // Asignar eventos a los controles
     if(document.getElementById('btnAgregarItem')) document.getElementById('btnAgregarItem').onclick = agregarItem;
     if(document.getElementById('aplicarDescuento')) document.getElementById('aplicarDescuento').onchange = toggleDescuento;
     if(document.getElementById('aplicarIVA')) document.getElementById('aplicarIVA').onchange = calcularTotales;
@@ -90,7 +88,6 @@ function inicializarCotizador() {
         };
     }
 
-    // Limpiar items y agregar uno por defecto
     if(document.getElementById('itemsContainer')) {
         document.getElementById('itemsContainer').innerHTML = '';
         agregarItem();
@@ -100,45 +97,32 @@ function inicializarCotizador() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Si la pestaña cotizaciones está activa al cargar, inicializarla
     const activeTab = document.querySelector('.tab-pane.show.active');
     if (activeTab && activeTab.id === 'cotizaciones') {
         inicializarCotizador();
     }
 });
 
-// Función para actualizar el select de clientes (usa id como value)
+// ========== CLIENTES: ACTUALIZAR SELECT ==========
 function actualizarSelectClientes() {
-    if (!document.getElementById('clienteSelect')) return;
     const select = document.getElementById('clienteSelect');
-    let clientes = [];
-    // Si tienes la clase Clientes como global, úsala, si no, usa localStorage:
-    if (window.obtenerClientes) {
-        clientes = window.obtenerClientes();
-    } else {
-        clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
-    }
+    if (!select) return;
+    const clientesArr = gestorClientes.obtenerTodos();
     select.innerHTML = '<option value="">Seleccionar cliente...</option>';
-    clientes.forEach((cliente) => {
+    clientesArr.forEach(cliente => {
         const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
         select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
     });
 }
+window.actualizarSelectClientes = actualizarSelectClientes;
 
 // ========== FUNCIONES DEL COTIZADOR ==========
 
 function construirObjetoCotizacion() {
-    // Extrae datos reales del cliente seleccionado
-    let clientes = [];
-    if (window.obtenerClientes) {
-        clientes = window.obtenerClientes();
-    } else {
-        clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
-    }
     const idSelected = document.getElementById('clienteSelect')?.value;
     let clienteObj = {nombre: '', direccion: '', telefono: '', email: '', tipo: ''};
     if (idSelected) {
-        const cli = clientes.find(c => c.id === idSelected);
+        const cli = gestorClientes.obtenerPorId(idSelected);
         if (cli) clienteObj = {...cli};
     }
     return {
@@ -313,7 +297,6 @@ function guardarBorrador() {
     const cotizacion = construirObjetoCotizacion();
     cotizacion.estado = "borrador";
     guardarCotizacion(cotizacion);
-    // Cambia el estado visual
     if(document.getElementById('estadoCotizacion')) {
         document.getElementById('estadoCotizacion').className = 'badge bg-warning status-badge';
         document.getElementById('estadoCotizacion').textContent = 'Borrador';
@@ -326,7 +309,6 @@ function aprobarCotizacion() {
     const cotizacion = construirObjetoCotizacion();
     cotizacion.estado = "aprobada";
     guardarCotizacion(cotizacion);
-    // Cambia el estado visual
     if(document.getElementById('estadoCotizacion')) {
         document.getElementById('estadoCotizacion').className = 'badge bg-success status-badge';
         document.getElementById('estadoCotizacion').textContent = 'Aprobada';
@@ -353,7 +335,6 @@ function generarFolioAutomatico() {
 }
 
 function limpiarFormularioCotizacion() {
-    // Nuevo folio
     const nuevoFolio = generarFolioAutomatico();
     if(document.getElementById('folioCotizacion')) {
         document.getElementById('folioCotizacion').textContent = nuevoFolio;
@@ -361,24 +342,16 @@ function limpiarFormularioCotizacion() {
     if(document.getElementById('previewFolio')) {
         document.getElementById('previewFolio').textContent = 'Cotización ' + nuevoFolio;
     }
-
-    // Estado a borrador
     if(document.getElementById('estadoCotizacion')) {
         document.getElementById('estadoCotizacion').className = 'badge bg-warning status-badge';
         document.getElementById('estadoCotizacion').textContent = 'Borrador';
     }
-
-    // Limpiar cliente y fecha
     if(document.getElementById('clienteSelect')) document.getElementById('clienteSelect').selectedIndex = 0;
     if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
-
-    // Limpiar items
     if(document.getElementById('itemsContainer')) {
         document.getElementById('itemsContainer').innerHTML = '';
         agregarItem();
     }
-
-    // Limpiar otros campos
     if(document.getElementById('notasAdicionales')) document.getElementById('notasAdicionales').value = '';
     if(document.getElementById('aplicarIVA')) document.getElementById('aplicarIVA').checked = true;
     if(document.getElementById('aplicarDescuento')) document.getElementById('aplicarDescuento').checked = false;
@@ -445,7 +418,6 @@ function cargarCotizacion(id) {
     if(document.getElementById('itemsContainer')) document.getElementById('itemsContainer').innerHTML = '';
     cot.materiales.forEach(item => {
         agregarItem();
-        // Rellena el último item agregado
         const items = document.querySelectorAll('.item-row');
         const row = items[items.length - 1];
         row.querySelector('.descripcion-input').value = item.nombre;
@@ -453,22 +425,14 @@ function cargarCotizacion(id) {
         row.querySelector('.precio-input').value = item.precio;
     });
 
-    // Seleccionar cliente si existe
     if(document.getElementById('clienteSelect')) {
-        // Buscar el cliente por ID (ahora el value es el id)
-        let clientes = [];
-        if (window.obtenerClientes) {
-            clientes = window.obtenerClientes();
-        } else {
-            clientes = JSON.parse(localStorage.getItem('cotizador_clientes')) || [];
-        }
-        const idx = clientes.findIndex(
+        const clientesArr = gestorClientes.obtenerTodos();
+        const idx = clientesArr.findIndex(
             c => c.id === cot.cliente.id
         );
         document.getElementById('clienteSelect').selectedIndex = idx >= 0 ? (idx + 1) : 0; // +1 por la opción "Seleccionar"
     }
 
-    // Actualiza el estado visual
     if(document.getElementById('estadoCotizacion')) {
         if (cot.estado === 'aprobada') {
             document.getElementById('estadoCotizacion').className = 'badge bg-success status-badge';
@@ -482,7 +446,6 @@ function cargarCotizacion(id) {
     calcularTotales();
 }
 
-// Hazlas globales para el HTML dinámico
 window.cargarCotizacion = cargarCotizacion;
 window.eliminarCotizacion = eliminarCotizacion;
 window.actualizarSelectClientes = actualizarSelectClientes;

@@ -38,8 +38,8 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
-                    <i class="fas fa-users"></i> Clientes
+                <button class="nav-link" id="cliente-tab" data-bs-toggle="tab" data-bs-target="#cliente" type="button" role="tab">
+                    <i class="fas fa-users"></i> Cliente
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -89,8 +89,8 @@
                                     <div class="col-md-6">
                                         <label class="form-label">Cliente</label>
                                         <select class="form-select" id="clienteSelect">
-                                        <option value="">Seleccionar cliente...</option>
-                                    </select>
+                                            <option value="">Seleccionar cliente...</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Fecha</label>
@@ -203,7 +203,7 @@
                 </div>
             </div>
             <!--pestañas vacías, el JS cargará el contenido -->
-            <div class="tab-pane fade" id="clientes" role="tabpanel"></div>
+            <div class="tab-pane fade" id="cliente" role="tabpanel"></div>
             <div class="tab-pane fade" id="historial" role="tabpanel"></div>
             <div class="tab-pane fade" id="materiales" role="tabpanel"></div>
             <div class="tab-pane fade" id="calculadoras" role="tabpanel"></div>
@@ -215,6 +215,7 @@
     <!-- SCRIPTS solo aquí -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- SOLO estos dos imports, como módulos ES -->
     <script src="js/pdf.js" type="module"></script>
     <script src="js/app.js" type="module"></script>
 </body>
