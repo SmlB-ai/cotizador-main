@@ -6,7 +6,7 @@ const gestorClientes = new ClienteManager();
 
 // ========== CONFIGURACIÓN DE TABS DINÁMICOS ==========
 const tabFiles = {
-    clientes: "pestañas/clientes/clientes.html",
+    cliente: "pestañas/cliente/cliente.html", // <---- CORREGIDO
     historial: "pestañas/historial/historial.html",
     materiales: "pestañas/materiales/materiales.html",
     calculadoras: "pestañas/calculadoras/calculadoras.html",
@@ -448,4 +448,4 @@ function cargarCotizacion(id) {
 
 window.cargarCotizacion = cargarCotizacion;
 window.eliminarCotizacion = eliminarCotizacion;
-window.actualizarSelectClientes = actualizarSelectClientes;
+window.actualizarSelectCliente = actualizarSelectCliente;

@@ -1,4 +1,4 @@
-<!-- cliente.html mejorado y moderno, usando módulos ES, Bootstrap y la clase Cliente desde cliente.js -->
+<!-- cliente.html mejorado y listo para funcionar en pestañas/cliente/cliente.html -->
 <div class="container mt-4">
     <div class="card mb-4">
         <div class="card-header">
@@ -57,10 +57,12 @@
         </div>
     </div>
 </div>
-<script type="module">
-import { ClienteManager } from './cliente.js';
 
-// Instancia única para toda la app
+<script type="module">
+// Ajusta la ruta según tu estructura real
+import { ClienteManager } from '../../js/cliente.js';
+
+// Instancia única para toda la app (y para el select de cotizaciones)
 const gestorClientes = new ClienteManager();
 
 function renderizarListaClientes() {
@@ -77,21 +79,26 @@ function renderizarListaClientes() {
                     <strong>${c.nombre}</strong> (${c.tipo || '-'})<br>
                     <small>Tel: ${c.telefono || '-'} | Email: ${c.email || '-'} | Dir: ${c.direccion || '-'}</small>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="window.eliminarCliente('${c.id}')">
+                <button class="btn btn-danger btn-sm" data-id="${c.id}">
                     <i class="fas fa-trash"></i>
                 </button>
             </li>
         `).join('') +
         '</ul>';
+
+    // Asigna evento a los botones eliminar
+    lista.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.onclick = () => eliminarCliente(btn.getAttribute('data-id'));
+    });
 }
 
-window.eliminarCliente = function(id) {
+function eliminarCliente(id) {
     if (confirm("¿Eliminar este cliente?")) {
         gestorClientes.eliminar(id);
         renderizarListaClientes();
         if (window.actualizarSelectClientes) window.actualizarSelectClientes();
     }
-};
+}
 
 // Formulario alta de cliente
 document.getElementById('formNuevoCliente').addEventListener('submit', function(e) {
