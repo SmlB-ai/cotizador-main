@@ -25,12 +25,15 @@ async function loadTabContent(tabId) {
 
             // Inicializa la lógica de la pestaña correspondiente
             if (tabId === "cliente") {
-                // Importa y ejecuta la lógica de cliente (asegúrate de la ruta correcta)
                 const mod = await import('./cliente.js');
                 mod.initClienteTab();
             }
             if (tabId === "cotizaciones") {
                 inicializarCotizador();
+            }
+            if (tabId === "configuracion") {
+                const mod = await import('./config.js');
+                mod.initConfigTab();
             }
         } else {
             tabPane.innerHTML = "<div class='alert alert-danger'>No se pudo cargar el contenido.</div>";
