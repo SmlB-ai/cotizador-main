@@ -1,0 +1,60 @@
+<!-- cliente.html mejorado y listo para funcionar en pestañas/cliente/cliente.html -->
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Agregar Nuevo Cliente</strong>
+        </div>
+        <div class="card-body">
+            <form id="formNuevoCliente" autocomplete="off">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="clienteNombre" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="clienteTipo">
+                            <option value="Particular">Particular</option>
+                            <option value="Empresa">Empresa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="clienteTelefono">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="clienteEmail">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="clienteDireccion">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Agregar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Lista de Clientes</strong>
+            <button class="btn btn-sm btn-outline-primary float-end ms-2" id="btnExportarClientes">
+                <i class="fas fa-file-export"></i> Exportar CSV
+            </button>
+            <button class="btn btn-sm btn-outline-secondary float-end" id="btnImportarClientes">
+                <i class="fas fa-file-import"></i> Importar CSV
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="listaClientes">
+                <!-- Aquí se mostrará la lista de clientes -->
+            </div>
+        </div>
+    </div>
+</div>
+
