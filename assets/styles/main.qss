@@ -1,0 +1,242 @@
+/* --------- COLORES PRINCIPALES --------- */
+@primary-color: #2c3e50;
+@secondary-color: #3498db;
+@success-color: #27ae60;
+@warning-color: #f39c12;
+@danger-color: #e74c3c;
+@background: #f8f9fa;
+@white: #ffffff;
+
+/* --------- FUENTES --------- */
+QWidget {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    background-color: @background;
+    color: @primary-color;
+}
+
+/* --------- VENTANA PRINCIPAL --------- */
+QMainWindow {
+    background-color: @background;
+}
+
+/* --------- NAVBAR SIMULADO --------- */
+QMenuBar {
+    background-color: @white;
+    color: @primary-color;
+    font-weight: bold;
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* --------- PESTAÑAS --------- */
+QTabWidget::pane {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: @white;
+    margin: 10px 0 0 0;
+}
+
+QTabBar::tab {
+    color: @primary-color;
+    background: @background;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px 10px 0 0;
+    margin-right: 3px;
+    font-weight: 500;
+}
+
+QTabBar::tab:selected,
+QTabBar::tab:hover {
+    background: @secondary-color;
+    color: #fff;
+    border: none;
+}
+
+/* --------- CARDS --------- */
+QGroupBox, QFrame[frameShape="4"] { /* QFrame::Panel */
+    background: @white;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.08);
+    padding: 14px;
+}
+
+/* --------- BOTONES --------- */
+QPushButton {
+    background-color: @secondary-color;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-weight: 500;
+    transition: background 0.2s;
+    qproperty-iconSize: 20px 20px;
+}
+
+QPushButton:disabled {
+    background-color: #b0c4de;
+    color: #eee;
+}
+
+QPushButton:hover {
+    background-color: #2980b9;
+}
+
+QPushButton:pressed {
+    background-color: #2573a7;
+}
+
+QPushButton[success="true"] {
+    background: @success-color;
+}
+
+QPushButton[success="true"]:hover {
+    background: #208c4a;
+}
+
+QPushButton[warning="true"] {
+    background: @warning-color;
+}
+
+QPushButton[danger="true"] {
+    background: @danger-color;
+}
+
+QPushButton[danger="true"]:hover {
+    background: #c0392b;
+}
+
+/* BOTONES CON ICONOS ESPECÍFICOS (EJEMPLO) */
+QPushButton#btnAdd {
+    qproperty-icon: url(:/icons/plus.png);
+}
+QPushButton#btnSave {
+    qproperty-icon: url(:/icons/save.png);
+}
+QPushButton#btnPdf {
+    qproperty-icon: url(:/icons/pdf.png);
+}
+QPushButton#btnCheck {
+    qproperty-icon: url(:/icons/check.png);
+}
+QPushButton#btnDelete {
+    qproperty-icon: url(:/icons/trash.png);
+}
+
+/* --------- ENTRADAS DE FORMULARIO --------- */
+QLineEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QComboBox, QTextEdit {
+    background: @white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 14px;
+    color: @primary-color;
+}
+
+QLineEdit:focus, QComboBox:focus, QTextEdit:focus, QDateEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1.5px solid @secondary-color;
+    background: #eaf6fb;
+}
+
+/* --------- ETIQUETAS Y BADGES --------- */
+QLabel[badge="true"] {
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+}
+QLabel[status="warning"] {
+    background: @warning-color;
+}
+QLabel[status="success"] {
+    background: @success-color;
+}
+QLabel[status="secondary"] {
+    background: #6c757d;
+}
+
+/* --------- TABLAS --------- */
+QTableWidget, QTableView {
+    border: 1px solid #e0e0e0;
+    background: @white;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+QHeaderView::section {
+    background: @secondary-color;
+    color: #fff;
+    padding: 8px;
+    border: none;
+    font-weight: bold;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+QTableWidget::item:selected, QTableView::item:selected {
+    background: #d0e6f7;
+    color: @primary-color;
+}
+
+/* --------- CHECKBOX Y RADIO --------- */
+QCheckBox, QRadioButton {
+    padding: 4px;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+}
+
+QCheckBox::indicator:checked {
+    background: @secondary-color;
+    border-radius: 4px;
+}
+
+QRadioButton::indicator:checked {
+    background: @secondary-color;
+    border-radius: 9px;
+}
+
+/* --------- SCROLLBARS --------- */
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: #f1f1f1;
+    border-radius: 8px;
+    width: 10px;
+}
+
+QScrollBar::handle {
+    background: @secondary-color;
+    border-radius: 8px;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: none;
+    border: none;
+}
+
+/* --------- MENSAJES Y ALERTAS --------- */
+QMessageBox QLabel {
+    font-size: 15px;
+    color: @primary-color;
+}
+
+QMessageBox QPushButton {
+    min-width: 90px;
+}
+
+/* --------- VISTA PREVIA DE COTIZACIÓN --------- */
+#CotizacionPreview {
+    border: 1px solid #ddd;
+    background: @white;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+/* --------- OCULTAR --------- */
+[hidden="true"] {
+    display: none;
+}
