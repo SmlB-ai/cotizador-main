@@ -1,13 +1,15 @@
 import { generarPDF, armarDatosEmpresaParaPDF } from './pdf.js';
+import { gestorClientes, initClienteTab } from './cliente.js';
+
+// ========== INICIALIZACIÓN GLOBAL ==========
+window.gestorClientes = gestorClientes;
+window.obtenerClientes = () => gestorClientes.obtenerTodos();
 
 // ========== CONFIGURACIÓN DE TABS DINÁMICOS ==========
 const tabFiles = {
     cliente: "pestañas/cliente/cliente.html",
     historial: "pestañas/historial/historial.html",
-    materiales: "pestañas/materiales/materiales.html",
-    calculadoras: "pestañas/calculadoras/calculadoras.html",
     configuracion: "pestañas/configuracion/configuracion.html",
-    "panel-yeso": "pestañas/panel-yeso/panel-yeso.html",
 };
 
 async function loadTabContent(tabId) {
@@ -23,8 +25,7 @@ async function loadTabContent(tabId) {
             tabPane.dataset.loaded = true;
 
             if (tabId === "cliente") {
-                const mod = await import('./cliente.js');
-                mod.initClienteTab();
+                initClienteTab();
             }
             if (tabId === "cotizaciones") {
                 inicializarCotizador();
@@ -59,6 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ========== FUNCIONALIDAD DEL COTIZADOR PRINCIPAL (COTIZACIONES) ==========
 
+// ========== BORRADOR AUTOMÁTICO DEL FORMULARIO ==========
+const BORRADOR_KEY = 'cotizador_borrador_formulario';
+
+function guardarFormularioEnBorrador() {
+    const data = construirObjetoCotizacion();
+    localStorage.setItem(BORRADOR_KEY, JSON.stringify(data));
+}
+
 function inicializarCotizador() {
     if(document.getElementById('fechaCotizacion')) {
         document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
@@ -76,10 +85,10 @@ function inicializarCotizador() {
     if(document.getElementById('aplicarDescuento')) document.getElementById('aplicarDescuento').onchange = toggleDescuento;
     if(document.getElementById('aplicarIVA')) document.getElementById('aplicarIVA').onchange = calcularTotales;
     if(document.getElementById('tipoDescuento')) document.getElementById('tipoDescuento').onchange = calcularTotales;
-    if(document.getElementById('valorDescuento')) document.getElementById('valorDescuento').oninput = calcularTotales;
-    if(document.getElementById('clienteSelect')) document.getElementById('clienteSelect').onchange = calcularTotales;
-    if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').onchange = calcularTotales;
-    if(document.getElementById('notasAdicionales')) document.getElementById('notasAdicionales').oninput = calcularTotales;
+    if(document.getElementById('valorDescuento')) document.getElementById('valorDescuento').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+    if(document.getElementById('clienteSelect')) document.getElementById('clienteSelect').onchange = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+    if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').onchange = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+    if(document.getElementById('notasAdicionales')) document.getElementById('notasAdicionales').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
 
     if(document.getElementById('btnGuardarBorrador')) document.getElementById('btnGuardarBorrador').onclick = guardarBorrador;
     if(document.getElementById('btnAprobar')) document.getElementById('btnAprobar').onclick = aprobarCotizacion;
@@ -98,6 +107,13 @@ function inicializarCotizador() {
 
     if(document.getElementById('itemsContainer')) {
         document.getElementById('itemsContainer').innerHTML = '';
+        // No agregamos un item inicial aquí para que el borrador pueda estar vacío
+    }
+
+    cargarFormularioDesdeBorrador(); // Carga el borrador si existe
+
+    // Si después de cargar el borrador no hay items, agrega uno
+    if (document.querySelectorAll('.item-row').length === 0) {
         agregarItem();
     }
 
@@ -192,11 +208,12 @@ function agregarItem() {
 
     const row = document.getElementById(`item-${itemId}`);
     if(row) {
-        row.querySelector('.descripcion-input').oninput =
-        row.querySelector('.cantidad-input').oninput =
-        row.querySelector('.precio-input').oninput = calcularTotales;
+        row.querySelector('.descripcion-input').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+        row.querySelector('.cantidad-input').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+        row.querySelector('.precio-input').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
     }
     calcularTotales();
+    guardarFormularioEnBorrador();
 }
 
 window.eliminarItem = function(itemId) {
@@ -310,6 +327,7 @@ function guardarBorrador() {
     }
     alert('Cotización guardada como borrador. Folio: ' + cotizacion.id);
     limpiarFormularioCotizacion();
+    limpiarBorrador();
 }
 
 function aprobarCotizacion() {
@@ -322,6 +340,7 @@ function aprobarCotizacion() {
     }
     alert('Cotización aprobada. Folio: ' + cotizacion.id);
     limpiarFormularioCotizacion();
+    limpiarBorrador();
 }
 
 function generarFolioAutomatico() {
@@ -341,7 +360,56 @@ function generarFolioAutomatico() {
     return `COT-${año}${mes}-${nuevoNumero}`;
 }
 
+function limpiarBorrador() {
+    localStorage.removeItem(BORRADOR_KEY);
+}
+
+function cargarFormularioDesdeBorrador() {
+    const borrador = localStorage.getItem(BORRADOR_KEY);
+    if (!borrador) return;
+    const cot = JSON.parse(borrador);
+    if (!cot) return;
+
+    // No cargamos el folio, siempre se genera uno nuevo si no es una carga explícita
+    if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').value = cot.fecha;
+    if(document.getElementById('itemsContainer')) document.getElementById('itemsContainer').innerHTML = '';
+    cot.materiales.forEach(item => {
+        agregarItem(); // Esto ya guarda el borrador, pero está bien
+        const items = document.querySelectorAll('.item-row');
+        const row = items[items.length - 1];
+        row.querySelector('.descripcion-input').value = item.nombre;
+        row.querySelector('.cantidad-input').value = item.cantidad;
+        row.querySelector('.precio-input').value = item.precio;
+    });
+
+    if(document.getElementById('clienteSelect')) {
+        document.getElementById('clienteSelect').value = cot.clienteId || '';
+    }
+
+    if (document.getElementById('aplicarDescuento')) {
+        document.getElementById('aplicarDescuento').checked = !!cot.aplicarDescuento;
+        toggleDescuento(); // Para mostrar/ocultar la sección
+    }
+    if (document.getElementById('tipoDescuento')) {
+        document.getElementById('tipoDescuento').value = cot.tipoDescuento || 'porcentaje';
+    }
+    if (document.getElementById('valorDescuento')) {
+        document.getElementById('valorDescuento').value = cot.valorDescuento || '';
+    }
+
+    if (document.getElementById('aplicarIVA')) {
+        document.getElementById('aplicarIVA').checked = !!cot.aplicarIVA;
+    }
+
+    if (document.getElementById('notasAdicionales')) {
+        document.getElementById('notasAdicionales').value = cot.notasPago || '';
+    }
+
+    calcularTotales();
+}
+
 function limpiarFormularioCotizacion() {
+    limpiarBorrador();
     const nuevoFolio = generarFolioAutomatico();
     if(document.getElementById('folioCotizacion')) {
         document.getElementById('folioCotizacion').textContent = nuevoFolio;
