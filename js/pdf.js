@@ -165,12 +165,22 @@ export const generarPDF = async (datos) => {
 
         const totalesTable = [
             ['Subtotal:', `$${(datos.totales?.subtotal ?? 0).toFixed(2)}`],
-            ['Descuento:', `$${(datos.descuento ?? 0).toFixed(2)}`],
-            [`IVA (${datos.ivaPorcentaje ?? 16}%):`, `$${(datos.totales?.iva ?? 0).toFixed(2)}`],
-            ['Total:', `$${(datos.totales?.total ?? 0).toFixed(2)}`],
-            ['Anticipo:', `$${(datos.anticipo ?? 0).toFixed(2)}`],
-            ['Pendiente:', `$${((datos.totales?.total ?? 0)-(datos.anticipo ?? 0)).toFixed(2)}`]
         ];
+
+        if (datos.descuento > 0) {
+            totalesTable.push(['Descuento:', `-$${(datos.descuento ?? 0).toFixed(2)}`]);
+        }
+
+        if (datos.aplicarIVA) {
+            totalesTable.push([`IVA (${datos.ivaPorcentaje ?? 16}%):`, `$${(datos.totales?.iva ?? 0).toFixed(2)}`]);
+        }
+
+        totalesTable.push(['Total:', `$${(datos.totales?.total ?? 0).toFixed(2)}`]);
+
+        if (datos.aplicarAnticipo && datos.anticipo > 0) {
+            totalesTable.push(['Anticipo:', `-$${(datos.anticipo ?? 0).toFixed(2)}`]);
+            totalesTable.push(['Saldo Pendiente:', `$${((datos.totales?.total ?? 0) - (datos.anticipo ?? 0)).toFixed(2)}`]);
+        }
 
         totalesTable.forEach((row, index) => {
             doc.setFont(undefined, index === 3 || index === 5 ? 'bold' : 'normal');
