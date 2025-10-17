@@ -178,10 +178,10 @@ export class ClienteManager {
 }
 
 // --- Lógica de UI y eventos de la pestaña Cliente ---
+export const gestorClientes = new ClienteManager();
+
 export function initClienteTab() {
     if (!document.getElementById('formNuevoCliente')) return;
-
-    const gestorClientes = new ClienteManager();
 
     function renderizarListaClientes() {
         const lista = document.getElementById('listaClientes');
@@ -276,8 +276,4 @@ export function initClienteTab() {
 
     // Inicializar lista al cargar
     renderizarListaClientes();
-
-    // Permitir acceso global (para el select de cotizaciones)
-    window.obtenerClientes = () => gestorClientes.obtenerTodos();
-    window.gestorClientes = gestorClientes;
 }
