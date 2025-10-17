@@ -143,13 +143,6 @@ function toggleAnticipo() {
     calcularTotales();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const activeTab = document.querySelector('.tab-pane.show.active');
-    if (activeTab && activeTab.id === 'cotizaciones') {
-        inicializarCotizador();
-    }
-});
-
 // ========== CLIENTES: ACTUALIZAR SELECT ==========
 function actualizarSelectClientes() {
     const select = document.getElementById('clienteSelect');
