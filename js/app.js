@@ -40,21 +40,29 @@ async function loadTabContent(tabId) {
     }
 }
 
+async function loadAllTabs() {
+    for (const tabId in tabFiles) {
+        await loadTabContent(tabId);
+    }
+}
+
 document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', function() {
         const target = btn.getAttribute('data-bs-target').replace('#', '');
         if (target === "cotizaciones") {
             actualizarSelectClientes();
         }
-        loadTabContent(target);
+        if (target === "historial") {
+            mostrarHistorial();
+        }
     });
 });
-document.querySelector('button[data-bs-target="#historial"]')?.addEventListener('shown.bs.tab', mostrarHistorial);
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAllTabs();
     const activeTab = document.querySelector('.tab-pane.show.active');
-    if (activeTab) {
-        loadTabContent(activeTab.id);
+    if (activeTab && activeTab.id === 'cotizaciones') {
+        inicializarCotizador();
     }
 });
 
@@ -83,9 +91,12 @@ function inicializarCotizador() {
 
     if(document.getElementById('btnAgregarItem')) document.getElementById('btnAgregarItem').onclick = agregarItem;
     if(document.getElementById('aplicarDescuento')) document.getElementById('aplicarDescuento').onchange = toggleDescuento;
+    if(document.getElementById('aplicarAnticipo')) document.getElementById('aplicarAnticipo').onchange = toggleAnticipo;
     if(document.getElementById('aplicarIVA')) document.getElementById('aplicarIVA').onchange = calcularTotales;
     if(document.getElementById('tipoDescuento')) document.getElementById('tipoDescuento').onchange = calcularTotales;
+    if(document.getElementById('tipoAnticipo')) document.getElementById('tipoAnticipo').onchange = calcularTotales;
     if(document.getElementById('valorDescuento')) document.getElementById('valorDescuento').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
+    if(document.getElementById('valorAnticipo')) document.getElementById('valorAnticipo').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
     if(document.getElementById('clienteSelect')) document.getElementById('clienteSelect').onchange = () => { calcularTotales(); guardarFormularioEnBorrador(); };
     if(document.getElementById('fechaCotizacion')) document.getElementById('fechaCotizacion').onchange = () => { calcularTotales(); guardarFormularioEnBorrador(); };
     if(document.getElementById('notasAdicionales')) document.getElementById('notasAdicionales').oninput = () => { calcularTotales(); guardarFormularioEnBorrador(); };
@@ -120,25 +131,35 @@ function inicializarCotizador() {
     calcularTotales();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const activeTab = document.querySelector('.tab-pane.show.active');
-    if (activeTab && activeTab.id === 'cotizaciones') {
-        inicializarCotizador();
+function toggleAnticipo() {
+    const checkbox = document.getElementById('aplicarAnticipo');
+    const anticipoSection = document.getElementById('anticipoSection');
+    if (checkbox?.checked) {
+        anticipoSection?.classList.remove('hidden');
+    } else {
+        anticipoSection?.classList.add('hidden');
+        if(document.getElementById('valorAnticipo')) document.getElementById('valorAnticipo').value = '';
     }
-});
+    calcularTotales();
+}
 
 // ========== CLIENTES: ACTUALIZAR SELECT ==========
 function actualizarSelectClientes() {
     const select = document.getElementById('clienteSelect');
     if (!select || typeof window.obtenerClientes !== 'function') return;
     const clientesArr = window.obtenerClientes();
+    const valorSeleccionado = select.value;
     select.innerHTML = '<option value="">Seleccionar cliente...</option>';
     clientesArr.forEach(cliente => {
         const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
-        select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
+        const option = new Option(texto, cliente.id);
+        select.add(option);
     });
+    select.value = valorSeleccionado; // Re-seleccionar si es posible
 }
-window.actualizarSelectClientes = actualizarSelectClientes;
+
+// Escuchar el evento personalizado para actualizar la lista de clientes
+document.addEventListener('clientesActualizados', actualizarSelectClientes);
 
 // ========== FUNCIONES DEL COTIZADOR ==========
 
@@ -172,7 +193,10 @@ function construirObjetoCotizacion() {
         aplicarDescuento: !!document.getElementById('aplicarDescuento')?.checked,
         tipoDescuento: document.getElementById('tipoDescuento')?.value || 'porcentaje',
         valorDescuento: parseFloat(document.getElementById('valorDescuento')?.value) || 0,
-        anticipo: 0,
+        anticipo: parseFloat(document.getElementById('previewAnticipo')?.textContent.replace('$','')) || 0,
+        aplicarAnticipo: !!document.getElementById('aplicarAnticipo')?.checked,
+        tipoAnticipo: document.getElementById('tipoAnticipo')?.value || 'porcentaje',
+        valorAnticipo: parseFloat(document.getElementById('valorAnticipo')?.value) || 0,
         formaPago: 'Transferencia',
         notasPago: document.getElementById('notasAdicionales')?.value || '',
         estado: document.getElementById('estadoCotizacion')?.textContent?.toLowerCase() || 'borrador'
@@ -264,13 +288,28 @@ function calcularTotales() {
     }
     const total = subtotal - descuento + iva;
 
-    updatePreview(subtotal, descuento, iva, total);
+    let anticipo = 0;
+    if (document.getElementById('aplicarAnticipo')?.checked) {
+        const tipoAnticipo = document.getElementById('tipoAnticipo').value;
+        const valorAnticipo = parseFloat(document.getElementById('valorAnticipo').value) || 0;
+        if (tipoAnticipo === 'porcentaje') {
+            anticipo = total * (valorAnticipo / 100);
+        } else {
+            anticipo = valorAnticipo;
+        }
+    }
+
+    const saldo = total - anticipo;
+
+    updatePreview(subtotal, descuento, iva, total, anticipo, saldo);
 }
 
-function updatePreview(subtotal, descuento, iva, total) {
+function updatePreview(subtotal, descuento, iva, total, anticipo, saldo) {
     if(document.getElementById('previewSubtotal')) document.getElementById('previewSubtotal').textContent = `$${subtotal.toFixed(2)}`;
     if(document.getElementById('previewIVA')) document.getElementById('previewIVA').textContent = `$${iva.toFixed(2)}`;
     if(document.getElementById('previewTotal')) document.getElementById('previewTotal').textContent = `$${total.toFixed(2)}`;
+    if(document.getElementById('previewAnticipo')) document.getElementById('previewAnticipo').textContent = `$${anticipo.toFixed(2)}`;
+    if(document.getElementById('previewSaldo')) document.getElementById('previewSaldo').textContent = `$${saldo.toFixed(2)}`;
 
     const descuentoRow = document.getElementById('previewDescuentoRow');
     if (descuentoRow) {
@@ -283,6 +322,18 @@ function updatePreview(subtotal, descuento, iva, total) {
     }
     const ivaRow = document.getElementById('previewIVARow');
     if (ivaRow) ivaRow.style.display = document.getElementById('aplicarIVA')?.checked ? 'flex' : 'none';
+
+    const anticipoRow = document.getElementById('previewAnticipoRow');
+    const saldoRow = document.getElementById('previewSaldoRow');
+    if (anticipoRow && saldoRow) {
+        if (anticipo > 0) {
+            anticipoRow.style.display = 'flex';
+            saldoRow.style.display = 'flex';
+        } else {
+            anticipoRow.style.display = 'none';
+            saldoRow.style.display = 'none';
+        }
+    }
 
     updateItemsPreview();
 }
@@ -401,6 +452,17 @@ function cargarFormularioDesdeBorrador() {
         document.getElementById('aplicarIVA').checked = !!cot.aplicarIVA;
     }
 
+    if (document.getElementById('aplicarAnticipo')) {
+        document.getElementById('aplicarAnticipo').checked = !!cot.aplicarAnticipo;
+        toggleAnticipo();
+    }
+    if (document.getElementById('tipoAnticipo')) {
+        document.getElementById('tipoAnticipo').value = cot.tipoAnticipo || 'porcentaje';
+    }
+    if (document.getElementById('valorAnticipo')) {
+        document.getElementById('valorAnticipo').value = cot.valorAnticipo || '';
+    }
+
     if (document.getElementById('notasAdicionales')) {
         document.getElementById('notasAdicionales').value = cot.notasPago || '';
     }
@@ -432,6 +494,9 @@ function limpiarFormularioCotizacion() {
     if(document.getElementById('aplicarDescuento')) document.getElementById('aplicarDescuento').checked = false;
     if(document.getElementById('descuentoSection')) document.getElementById('descuentoSection').classList.add('hidden');
     if(document.getElementById('valorDescuento')) document.getElementById('valorDescuento').value = '';
+    if(document.getElementById('aplicarAnticipo')) document.getElementById('aplicarAnticipo').checked = false;
+    if(document.getElementById('anticipoSection')) document.getElementById('anticipoSection').classList.add('hidden');
+    if(document.getElementById('valorAnticipo')) document.getElementById('valorAnticipo').value = '';
     calcularTotales();
 }
 
@@ -540,6 +605,17 @@ function cargarCotizacion(id) {
 
     if (document.getElementById('aplicarIVA')) {
         document.getElementById('aplicarIVA').checked = !!cot.aplicarIVA;
+    }
+
+    if (document.getElementById('aplicarAnticipo')) {
+        document.getElementById('aplicarAnticipo').checked = !!cot.aplicarAnticipo;
+        toggleAnticipo();
+    }
+    if (document.getElementById('tipoAnticipo')) {
+        document.getElementById('tipoAnticipo').value = cot.tipoAnticipo || 'porcentaje';
+    }
+    if (document.getElementById('valorAnticipo')) {
+        document.getElementById('valorAnticipo').value = cot.valorAnticipo || '';
     }
 
     if (document.getElementById('notasAdicionales')) {
