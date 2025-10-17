@@ -40,21 +40,29 @@ async function loadTabContent(tabId) {
     }
 }
 
+async function loadAllTabs() {
+    for (const tabId in tabFiles) {
+        await loadTabContent(tabId);
+    }
+}
+
 document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', function() {
         const target = btn.getAttribute('data-bs-target').replace('#', '');
         if (target === "cotizaciones") {
             actualizarSelectClientes();
         }
-        loadTabContent(target);
+        if (target === "historial") {
+            mostrarHistorial();
+        }
     });
 });
-document.querySelector('button[data-bs-target="#historial"]')?.addEventListener('shown.bs.tab', mostrarHistorial);
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAllTabs();
     const activeTab = document.querySelector('.tab-pane.show.active');
-    if (activeTab) {
-        loadTabContent(activeTab.id);
+    if (activeTab && activeTab.id === 'cotizaciones') {
+        inicializarCotizador();
     }
 });
 
@@ -132,13 +140,18 @@ function actualizarSelectClientes() {
     const select = document.getElementById('clienteSelect');
     if (!select || typeof window.obtenerClientes !== 'function') return;
     const clientesArr = window.obtenerClientes();
+    const valorSeleccionado = select.value;
     select.innerHTML = '<option value="">Seleccionar cliente...</option>';
     clientesArr.forEach(cliente => {
         const texto = `${cliente.nombre} - ${cliente.tipo || '-'}`;
-        select.innerHTML += `<option value="${cliente.id}">${texto}</option>`;
+        const option = new Option(texto, cliente.id);
+        select.add(option);
     });
+    select.value = valorSeleccionado; // Re-seleccionar si es posible
 }
-window.actualizarSelectClientes = actualizarSelectClientes;
+
+// Escuchar el evento personalizado para actualizar la lista de clientes
+document.addEventListener('clientesActualizados', actualizarSelectClientes);
 
 // ========== FUNCIONES DEL COTIZADOR ==========
 

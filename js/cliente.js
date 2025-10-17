@@ -62,6 +62,7 @@ export class ClienteManager {
         }
         this.guardarEnStorage(clientes);
         this.refrescarCache();
+        document.dispatchEvent(new CustomEvent('clientesActualizados'));
         return cliente;
     }
     eliminar(id) {
@@ -71,6 +72,7 @@ export class ClienteManager {
             clientes.splice(indice, 1);
             this.guardarEnStorage(clientes);
             this.refrescarCache();
+            document.dispatchEvent(new CustomEvent('clientesActualizados'));
             return true;
         }
         return false;
@@ -119,6 +121,7 @@ export class ClienteManager {
             }
         }
         this.refrescarCache();
+        document.dispatchEvent(new CustomEvent('clientesActualizados'));
         return resultado;
     }
     validarCliente(cliente) {
@@ -213,7 +216,6 @@ export function initClienteTab() {
         if (confirm("¿Eliminar este cliente?")) {
             gestorClientes.eliminar(id);
             renderizarListaClientes();
-            if (window.actualizarSelectClientes) window.actualizarSelectClientes();
         }
     }
 
@@ -228,7 +230,6 @@ export function initClienteTab() {
             gestorClientes.guardar({ nombre, tipo, telefono, email, direccion });
             this.reset();
             renderizarListaClientes();
-            if (window.actualizarSelectClientes) window.actualizarSelectClientes();
         } catch (e) {
             alert('Error: ' + e.message);
         }
@@ -264,7 +265,6 @@ export function initClienteTab() {
                     const resultado = gestorClientes.importarCSV(evt.target.result);
                     alert(`Importación completada:\n- Exitosos: ${resultado.exitosos}\n- Con errores: ${resultado.fallidos}`);
                     renderizarListaClientes();
-                    if (window.actualizarSelectClientes) window.actualizarSelectClientes();
                 } catch (err) {
                     alert('Error al importar: ' + err.message);
                 }
